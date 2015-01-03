@@ -1,0 +1,120 @@
+---
+title: "Food"
+author: "Vicky"
+date: "Friday, January 02, 2015"
+output: html_document
+---
+
+setwd('D:/R/exploratory project')
+protein <- read.csv('protein1.csv')
+head(protein)
+
+#calculate protein percentage
+protein$protein.percentage <- protein$Protein.g.Per.Measure / protein$Weight.g
+protein.bypercentage <- protein[order(protein$protein.percentage, decreasing = TRUE), ]
+
+sugar <- read.csv('sugar1.csv')
+View(sugar)
+sugar$sugar.percentage <- sugar$Sugars..total.g.Per.Measure / sugar$Weight.g.
+
+#merge into a new dataframe
+merge <- merge(protein, sugar, by="NDB_NO")
+
+#create a scatter plot with smoother
+ggplot(aes(x = protein.percentage, y = sugar.percentage), data = merge) +
++      geom_point(alpha = 1/10) +
++ stat_smooth(method = 'lm')
+
+#test the correlation coefficient between protein and sugar
+cor.test(merge$protein.percentage, merge$sugar.percentage, method = c("pearson"))
+#result:
+	Pearson's product-moment correlation
+
+data:  merge$protein.pct and merge$sugar.pct
+t = -26.1312, df = 6559, p-value < 2.2e-16
+alternative hypothesis: true correlation is not equal to 0
+95 percent confidence interval:
+ -0.3288229 -0.2849880
+sample estimates:
+       cor 
+-0.3070683 
+
+carb <- read.csv('carb.csv')
+energy <- read.csv('energy1.csv')
+fat <- read.csv('fat.csv')
+water <- read.csv('water.csv')
+
+carb$carb.pct <- carb$Carbohydrate..by.difference.g.Per.Measure / carb$Weight.g.
+carb1 <- carb[c("NDB_NO", "carb.pct")]
+merge <- merge[c("NDB_NO", "Description.x", "protein.percentage", "sugar.percentage")]
+merge <- merge(merge, carb1, by="NDB_NO")
+colnames(merge)[3] <- "protein.pct"
+colnames(merge)[4] <- "sugar.pct"
+
+energy$energy.pct <- energy$Energy.kcal.Per.Measure / energy$Weight.g.
+energy1 <- energy[c("NDB_NO", "energy.pct")]
+
+fat$fat.pct <- fat$Total.lipid..fat..g.Per.Measure / fat$Weight.g.
+fat1 <- fat[c("NDB_NO", "fat.pct")]
+
+water$water.pct <- water$Water.g.Per.Measure / water$Weight.g.
+water1 <- water[c("NDB_NO", "water.pct")]
+
+merge <- merge(merge, energy1, by="NDB_NO")
+merge <- merge(merge, fat1, by="NDB_NO")
+merge <- merge(merge, water1, by="NDB_NO")
+
+
+ fit <- lm(energy.pct ~ protein.pct + carb.pct + sugar.pct + fat.pct + water.pct, data = merge)
+summary(fit)
+
+Call:
+lm(formula = energy.pct ~ protein.pct + carb.pct + sugar.pct + 
+    fat.pct, data = merge)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-3.7617 -0.0321 -0.0012  0.0511  2.5941 
+
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)  0.03177    0.00453   7.013 2.57e-12 ***
+protein.pct  4.03924    0.02260 178.726  < 2e-16 ***
+carb.pct     3.72990    0.01107 336.826  < 2e-16 ***
+sugar.pct    0.15779    0.02064   7.645 2.38e-14 ***
+fat.pct      8.80997    0.01407 626.319  < 2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+
+Residual standard error: 0.18 on 6562 degrees of freedom
+Multiple R-squared:  0.9889,  Adjusted R-squared:  0.9889 
+F-statistic: 1.461e+05 on 4 and 6562 DF,  p-value: < 2.2e-16
+
+
+#with water
+Call:
+lm(formula = energy.pct ~ protein.pct + carb.pct + sugar.pct + 
+    fat.pct + water.pct, data = merge)
+
+Residuals:
+    Min      1Q  Median      3Q     Max 
+-3.7249 -0.0291  0.0001  0.0545  2.2849 
+
+Coefficients:
+            Estimate Std. Error t value Pr(>|t|)    
+(Intercept)  0.86590    0.05889  14.705   <2e-16 ***
+protein.pct  3.18527    0.06410  49.689   <2e-16 ***
+carb.pct     2.85899    0.06222  45.947   <2e-16 ***
+sugar.pct    0.18086    0.02042   8.858   <2e-16 ***
+fat.pct      7.96671    0.06096 130.696   <2e-16 ***
+water.pct   -0.84541    0.05951 -14.205   <2e-16 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 0.1773 on 6555 degrees of freedom
+Multiple R-squared:  0.9892,  Adjusted R-squared:  0.9892 
+F-statistic: 1.203e+05 on 5 and 6555 DF,  p-value: < 2.2e-16
+
+
+# questions to be asked: Does the amount of protein/carb/fat consumed by people in a certain region has correlation with the rate of heart attack/diabetes/cancer? - collect disease data.
